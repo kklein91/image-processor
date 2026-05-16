@@ -10,17 +10,12 @@ pip install -r requirements.txt
 ```
 
 Use the Calibration Utility before starting the application
-```
-python -m src.main --input bowling_frames --processed processed_frames
-```
-
-Drop images into the `bowling_frames` folder. The script will process images in arrival order, detect knocked-down pins and move each processed image into `processed_frames/frame_X`.
 
 **Calibration utility**
 
 Interactive selection (creates overlay image + Python config snippet):
 
-Note: Place an image that contains a full pin set named `calibration_baseline` in `./bowling_frames`
+Note: Place an image that contains a full pin set named `calibration_baseline.jpg` in `./bowling_frames`
 
 ```
 python -m src.calibrate --image ./bowling_frames/calibration_baseline.jpg
@@ -31,6 +26,14 @@ What this does:
 - Writes an overlay image showing the selected centers to `calibration_overlay.png`.
 - Saves a ready-to-paste Python snippet with `pin_centers` to the file specified by `--save-config` (default `copy_calibration_values_to_config.py`).
 - Replace lines 25-29 in `config.py` with the output in `copy_calibration_values_to_config.py`
+
+After using the calibration tool - start the application
+```
+python -m src.main --input bowling_frames --processed processed_frames
+```
+
+Drop images into the `bowling_frames` folder. The script will process images in arrival order, detect knocked-down pins and move each processed image into `processed_frames/frame_X`.
+
 
 Notes and configuration:
 - The calibration overlay circle radius is fixed at 20 pixels and is not user-configurable.
