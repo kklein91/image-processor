@@ -4,13 +4,19 @@ This project implements a simple 5-pin bowling image processor.
 
 Usage (watch a folder for incoming images):
 
+Install the python packages in requirements.txt before trying to run the below commands
+```
+pip install -r requirements.txt
+```
+
+Use the Calibration Utility before starting the application
 ```
 python -m src.main --input bowling_frames --processed processed_frames
 ```
 
 Drop images into the `bowling_frames` folder. The script will process images in arrival order, detect knocked-down pins and move each processed image into `processed_frames/frame_X`.
 
-Calibration utility
+**Calibration utility**
 
 Interactive selection (creates overlay image + Python config snippet):
 
