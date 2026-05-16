@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Ignore bowling_frames, processed_frames, debug_output
+bowling_frames/
+processed_frames/
+debug_output/
