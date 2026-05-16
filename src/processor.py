@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from .config import Config
+from .profiler import PerImageTimer, timer
 from .utils import ensure_dir, move_file_to_folder
 
 
@@ -83,20 +84,34 @@ class BowlingProcessor:
 
         return [pin_roi.roi for pin_roi in pin_rois]
 
-    def detect_pins_in_image(self, image_path: str) -> List[bool]:
-        image = cv2.imread(image_path)
+    def detect_pins_in_image(self, image_path: str) -> tuple[List[bool], PerImageTimer]:
+        timer_obj = PerImageTimer()
+
+        with timer() as t:
+            image = cv2.imread(image_path)
+        timer_obj.record("image_load", t.elapsed)
         if image is None:
             raise ValueError(f"Could not read image: {image_path}")
 
-        blur = self._prepare_blurred_gray(image)
-        pin_rois = self._build_pin_rois(blur)
+        with timer() as t:
+            blur = self._prepare_blurred_gray(image)
+        timer_obj.record("blur", t.elapsed)
+
+        with timer() as t:
+            pin_rois = self._build_pin_rois(blur)
+        timer_obj.record("roi_extraction", t.elapsed)
+
         if len(pin_rois) != len(self.cfg.pin_centers):
             raise ValueError(f"Could not build ROIs for all pin centers from {image_path}")
 
-        if self._baseline_rois is None:
-            return self._detect_pins_without_baseline(pin_rois)
+        with timer() as t:
+            if self._baseline_rois is None:
+                presence = self._detect_pins_without_baseline(pin_rois)
+            else:
+                presence = self._detect_pins_with_baseline(pin_rois)
+        timer_obj.record("detection", t.elapsed)
 
-        return self._detect_pins_with_baseline(pin_rois)
+        return presence, timer_obj
 
     def _detect_pins_without_baseline(self, pin_rois: List[PinRoi]) -> List[bool]:
         presence = [self._present_by_absolute_threshold(pin_roi) for pin_roi in pin_rois]
@@ -167,7 +182,9 @@ class BowlingProcessor:
 
     def process_image(self, path: str) -> dict:
         # Detect which pins are present (standing)
-        standing = self.detect_pins_in_image(path)
+        with timer() as t:
+            standing, detection_timer = self.detect_pins_in_image(path)
+        detection_total_ms = t.elapsed
         knocked = [prev and not cur for prev, cur in zip(self.pins_up, standing)]
         ball_value = sum(v for k, v in zip(knocked, self.cfg.pin_values) if k)
 
@@ -184,7 +201,10 @@ class BowlingProcessor:
 
         frame_folder = os.path.join(self.cfg.processed_root, f"frame_{self.current_frame}")
         ensure_dir(frame_folder)
-        new_path = move_file_to_folder(path, frame_folder)
+
+        with timer() as t:
+            new_path = move_file_to_folder(path, frame_folder)
+        file_move_time = t.elapsed
 
         result = {
             "frame": self.current_frame,
@@ -195,6 +215,16 @@ class BowlingProcessor:
             "frame_done": frame_done,
             "frame_score": self._current_frame_score,
             "current_score": self._running_score(),
+            "timing": {
+                "image_load_ms": detection_timer.get_stage("image_load"),
+            "detection_blur_ms": detection_timer.get_stage("blur"),
+            "detection_roi_ms": detection_timer.get_stage("roi_extraction"),
+            "detection_detect_ms": detection_timer.get_stage("detection"),
+            "detection_total_ms": detection_timer.total() - detection_timer.get_stage("image_load"),
+            "detection_total_wall_ms": detection_total_ms,
+            "file_move_ms": file_move_time,
+            "total_ms": detection_total_ms + file_move_time,
+            },
         }
 
         if not frame_done and self.current_frame == self.cfg.total_frames and not any(self.pins_up):

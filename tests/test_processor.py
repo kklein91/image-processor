@@ -48,7 +48,7 @@ class TestBowlingProcessor(unittest.TestCase):
     def test_detect_pins_in_image(self):
         image = self.make_image([True, False, True, False, True])
         path = self.save_image(image, "pins.png")
-        standing = self.processor.detect_pins_in_image(path)
+        standing, timer_ = self.processor.detect_pins_in_image(path)
         self.assertEqual(standing, [True, False, True, False, True])
 
     def test_process_frame_sequence(self):

@@ -9,6 +9,7 @@ from watchdog.events import FileSystemEventHandler
 
 from .config import Config
 from .processor import BowlingProcessor
+from .profiler import TimingStats
 from .utils import is_image_file
 
 
@@ -39,6 +40,7 @@ def run_watcher(cfg: Config):
     observer.schedule(handler, cfg.input_folder, recursive=False)
     observer.start()
 
+    timing_stats = TimingStats()
     logging.info(f"Watching folder: {cfg.input_folder}")
     try:
         while not processor.is_game_over():
@@ -47,7 +49,15 @@ def run_watcher(cfg: Config):
                 try:
                     res = processor.process_image(path)
                     current = res.get('current_score')
-                    logging.info(f"Processed: frame={res['frame']} ball={res['ball']} image={res['image']} knocked={res['knocked']} current_score={current}")
+                    timing = res.get('timing', {})
+                    detection_total = timing.get('detection_total_ms', 0.0)
+                    file_move = timing.get('file_move_ms', 0.0)
+                    total = timing.get('total_ms', 0.0)
+                    logging.info(
+                        f"Processed: frame={res['frame']} ball={res['ball']} image={res['image']} knocked={res['knocked']} "
+                        f"current_score={current} | detection={detection_total:.1f}ms file_move={file_move:.1f}ms total={total:.1f}ms"
+                    )
+                    timing_stats.add(total)
                 except Exception as e:
                     logging.exception(f"Error processing {path}: {e}")
             else:
@@ -65,6 +75,7 @@ def run_watcher(cfg: Config):
         logging.info(f"Frame {fr['frame']}: score={fr['score']} balls={fr['balls']}")
         total += fr['score']
     logging.info(f"Total score: {total}")
+    logging.info(f"Processing time summary: {timing_stats.summary()}")
     # Cleanup processed frame files when the game is over
     try:
         _cleanup_processed_frames(cfg.processed_root)
