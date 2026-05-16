@@ -14,10 +14,10 @@ Calibration utility
 
 Interactive selection (creates overlay image + Python config snippet):
 
-```
-python -m src.calibrate --image path/to/sample.jpg
+Note: Place an image that contains a full pin set named `calibration_baseline` in `./bowling_frames`
 
-Example: python -m src.calibrate --image ./bowling_frames/calibration_baseline.jpg
+```
+python -m src.calibrate --image ./bowling_frames/calibration_baseline.jpg
 ```
 
 What this does:
@@ -28,7 +28,7 @@ What this does:
 
 Notes and configuration:
 - The calibration overlay circle radius is fixed at 20 pixels and is not user-configurable.
-- To have the processor use a known "full set" image as the baseline (instead of learning the baseline at runtime), set `calibration_baseline_image` in `src/config.py` to the baseline image path (for example `"bowling_frames/calibration_baseline.jpg"`). If empty, the processor captures the baseline when it first sees an image where all pins appear present.
+- To have the processor use a known "full set" image as the baseline (instead of learning the baseline at runtime), set `calibration_baseline_image` in `src/config.py` to the baseline image path (for example `"bowling_frames/calibration_baseline.jpg"`).
 - Use `roi_mean_diff_threshold` in `src/config.py` to tune sensitivity of per-ROI comparisons (default `15.0`). Lower values make the detector more sensitive to small changes.
 
 Configuration is located in `src/config.py` and contains pin positions and thresholds that you can tune for your camera.
